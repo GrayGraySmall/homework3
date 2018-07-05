@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<link href="/homework3/bootstrap-3.3.7/dist/css/bootstrap.min.css"
+	rel="stylesheet">
+<!-- jQuery (Bootstrap 的 JavaScript 插件需要引入 
+    <!-- 包括所有已编译的插件 -->
+<script src="js/jquery-1.9.1.min.js" type="text/javascript"></script>
+<script src="/homework3/bootstrap-3.3.7/dist/js/bootstrap.min.js"></script>
+<title>订单</title>
+<script type="text/javascript">
+	var request = new XMLHttpRequest();
+	//加载session中的购物信息
+	function loadOrder() {
+		request.open("get", "orderList.jsp", true);
+		request.onreadystatechange = fillOrderTable;
+		request.send();
+	}
+
+	//填充表格
+	function fillOrderTable() {
+		if (request.readyState == 4 && request.status == 200) {
+			var table = document.getElementById("orderTable");
+			var goods = JSON.parse(request.responseText);
+			var sum = 0;
+			if(goods.length == 0){
+				var hint = document.getElementById('hint');
+				hint.style.display = '';
+				var order = document.getElementById('order');
+				order.style.display = 'none';
+			}else{
+				var hint = document.getElementById('hint');
+				hint.style.display = 'none';
+				var order = document.getElementById('order');
+				order.style.display = '';
+			}
+			for ( var index in goods) {
+				var newRow = table.insertRow(table.rows.length);
+				var col1 = newRow.insertCell(0);
+				var col2 = newRow.insertCell(1);
+				var col3 = newRow.insertCell(2);
+				var col4 = newRow.insertCell(3);
+				var col5 = newRow.insertCell(4);
+				var col6 = newRow.insertCell(5);
+				col1.innerHTML = goods[index].bookId;
+				col2.innerHTML = goods[index].bookName;
+				col3.innerHTML = (goods[index].bookPrice).toFixed(2);
+				col4.innerHTML = goods[index].bookQuantity;
+				col5.innerHTML = ((goods[index].bookPrice) * (goods[index].bookQuantity))
+						.toFixed(2);
+				col6.innerHTML = "<a href='#' onclick='deleteBook(\""
+						+ goods[index].bookId + "\");' >删除</a>";
+				sum += (goods[index].bookPrice) * (goods[index].bookQuantity);
+			}
+			var total = document.getElementById("total");
+			total.innerHTML = sum.toFixed(2);
+			var count = document.getElementById("count");
+			count.innerHTML = "<font color='red'> "
+					+ (sum - sum * 0.1).toFixed(2) + "</font>";
+			var oktotal = document.getElementById("oktotal");
+			oktotal.innerHTML = (sum * 0.1).toFixed(2);
+		}
+	}
+
+	//删除的时候清除所有表单（同时更新数据库）
+	function deleteBook(bookId) {
+		var url = "deleteBookOrder.jsp?bookId=" + bookId;
+		request.open("get", url, true);
+		request.onreadystatechange = updataTable;
+		request.send();
+	}
+
+	//更新数据库
+	function updataTable() {
+		if (request.readyState == 4 && request.status == 200) {
+			var table = document.getElementById("orderTable");
+			var rowCount = table.rows.length;
+			while (table.rows.length != 1) {
+				table.deleteRow(1);
+			}
+			loadOrder();
+		}
+	}
+
+	//提交购物单
+	function submitOrder() {
+		var count = document.getElementById("count").innerText;
+		var url = "submitOrder.jsp?count=" + count;
+		request.open("get", url, true);
+		request.onreadystatechange = updataTable;
+		request.send();
+	}
+</script>
+
+</head>
+<body onload="loadOrder()">
+	<div class="container">
+		<nav class="navbar navbar-default" role="navigation">
+			<div class="container-fluid">
+				<div class="navbar-header">
+					<a class="navbar-brand" href="/homework3/mainPage.html">主页</a> <a
+						class="navbar-brand active" href="/homework3/orderPage.html">订单</a><a
+						class="navbar-brand" href="/homework3/historyOrder.html">历史订单</a>
+				</div>
+			</div>
+		</nav>
+
+		<div align="left">
+			<label><font size="3" color="red">全场一折，欢迎抢购！</font></label>
+		</div>
+		<label id="hint"><font color="red">您当前没有订单！！！</font></label>
+		<div id="order" style="display: none">
+			<table id="orderTable" class="table table-bordered table-hover"
+				border="1">
+				<tr class="info" align="center">
+					<th>编号</th>
+					<th>名称</th>
+					<th>价格(元/份)</th>
+					<th>数量</th>
+					<th>总价(元)</th>
+					<th>操作</th>
+				</tr>
+			</table>
+			<div align="right">
+				总金额： <label id="total">0</label>元<br> 折扣：- <label id="count">0</label>元<br>
+				实付金额： <label id="oktotal">0</label>元<br>
+				<button class="btn btn-default" onclick='submitOrder()'>提交</button>
+			</div>
+		</div>
+	</div>
+</body>
+</html>

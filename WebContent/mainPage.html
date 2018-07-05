@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<link href="/homework3/bootstrap-3.3.7/dist/css/bootstrap.min.css"
+	rel="stylesheet">
+<!-- jQuery (Bootstrap 的 JavaScript 插件需要引入 
+    <!-- 包括所有已编译的插件 -->
+<script src="js/jquery-1.9.1.min.js" type="text/javascript"></script>
+<script src="/homework3/bootstrap-3.3.7/dist/js/bootstrap.min.js"></script>
+<script src="layer/layer.js" type="text/javascript"></script>
+<script type="text/javascript">
+	var request = new XMLHttpRequest();
+	var selectnum = 1;
+	function getPage() {
+		var url = "/homework3/CalculatePageServlet";
+		var bookName = document.getElementById('inputSearch').value;
+		if (bookName != null && bookName != '')
+			url = url + "?bookName=" + bookName;
+		request.open("get", url, true);
+		request.onreadystatechange = initPage;
+		request.send();
+	}
+
+	//初始化翻页标签
+	function initPage() {
+		if (request.readyState == 4 && request.status == 200) {
+			clearUL();
+			var select = document.getElementById('pageselect');
+			var number = JSON.parse(request.responseText);
+			if (number == 0) {
+				number = 1;
+			}
+			for (var index = 1; index <= number / 5 + 1; index++) {
+				if (number % 10 == 0 && index == number / 10 + 1) {
+					break;
+				}
+				var option = document.createElement("option");
+				option.setAttribute("value", index);
+				option.innerHTML = index;
+				if (index == selectnum) { //设置选中数据
+					option.setAttribute("selected", "selected");
+				}
+				select.appendChild(option);
+			}
+		}
+	}
+
+	//清除下拉框的所有值
+	function clearUL() {
+		var select = document.getElementById('pageselect');
+		var index = select.selectedIndex;
+		selectnum = select.options[index].value;
+		var lis = select.getElementsByTagName('option');
+		while (lis.length) {//移除
+			select.removeChild(lis[0]);
+		}
+	}
+
+	//分页查询书籍
+	function findAllBookInfos() {
+		var url = "/homework3/BookListPagedServlet";
+		//获取选中的页号
+		var select = document.getElementById('pageselect');
+		var index = select.selectedIndex;
+		var queryName = select.options[index].value;
+		selectnum = queryName;
+		if (queryName == 0 || queryName == null) {
+			queryName = 1;
+		}
+		url = url + "?pageIndex=" + queryName;
+
+		//获取想要查询的书籍的名称
+		var bookName = document.getElementById('inputSearch').value;
+		if (bookName != null && bookName != '')
+			url = url + "&bookName=" + bookName;
+		request.open("get", url, true);
+		request.onreadystatechange = fillbooksTable;
+		request.send();
+	}
+
+	//从获取的数据中填充表格
+	function fillbooksTable() {
+		if (request.readyState == 4 && request.status == 200) {
+			clearBooksTable();
+			var table = document.getElementById("bookTable");
+			var books = JSON.parse(request.responseText);
+			if(books.length == 0){
+				var hint = document.getElementById('hint');
+				hint.style.display = '';
+				var page = document.getElementById('page');
+				page.style.display = 'none';
+			}else{
+				var hint = document.getElementById('hint');
+				hint.style.display = 'none';
+				var page = document.getElementById('page');
+				page.style.display = '';
+			}
+			for ( var index in books) {
+				var newRow = table.insertRow();
+				var col1 = newRow.insertCell();
+				var col2 = newRow.insertCell();
+				var col3 = newRow.insertCell();
+				var col4 = newRow.insertCell();
+				var col5 = newRow.insertCell();
+
+				col1.innerHTML = books[index].bookId;
+				col2.innerHTML = books[index].bookName;
+				col3.innerHTML = (books[index].bookPrice).toFixed(2);
+				col4.innerHTML = books[index].publishDate;
+				col5.innerHTML = "<a href='#' onclick='updateOrder(\""
+						+ books[index].bookId + "\");' >购买</a>";
+			}
+			getPage();
+		}
+	}
+
+	//买书
+	function updateOrder(bookId) {
+		var url = "buyBook.jsp?bookId=" + bookId;
+		request.open("get", url, true);
+		request.onreadystatechange = 200;
+		request.send();
+	}
+
+	function clearBooksTable() {
+		var table = document.getElementById("bookTable");
+		while (table.rows.length > 1)
+			table.deleteRow(1);
+	}
+
+	function nextPage() {
+		var select = document.getElementById('pageselect');
+		var index = select.selectedIndex;
+		var option = select.options[index + 1];
+		option.setAttribute("selected", "selected");
+		findAllBookInfos();
+	}
+
+	function prePage() {
+		var select = document.getElementById('pageselect');
+		var index = select.selectedIndex;
+		var option = select.options[index - 1];
+		option.setAttribute("selected", "selected");
+		findAllBookInfos();
+	}
+</script>
+<title>购物主页</title>
+</head>
+<body onload="findAllBookInfos();">
+	<div class="container">
+		<nav class="navbar navbar-default" role="navigation">
+			<div class="container-fluid">
+				<div class="navbar-header">
+					<a class="navbar-brand" href="/homework3/mainPage.html">主页</a> <a
+						class="navbar-brand" href="/homework3/orderPage.html">订单</a> <a
+						class="navbar-brand" href="/homework3/historyOrder.html">历史订单</a>
+				</div>
+				<form class="navbar-form navbar-right" role="search">
+					<div class="form-group">
+						<input id="inputSearch" type="text" class="form-control"
+							placeholder="Search">
+					</div>
+					<input type="button" id="btnQuery" class="form-control"
+						onclick="findAllBookInfos()" value="查询" />
+				</form>
+			</div>
+		</nav>
+		<label id="hint" style="display: none"><font color="red">您所要查询的书籍没有！！！！</font></label>
+		<div id="page">
+			<table id="bookTable" class="table table-bordered table-hover"
+				border="1">
+				<tr class="info" align="center" background="#7FFF00">
+					<th>编号</th>
+					<th>图书</th>
+					<th>价格</th>
+					<th>出版日期</th>
+					<th>操作</th>
+				</tr>
+			</table>
+			<div align="right">
+				<a class="btn btn-link" id="prePage" onclick="prePage();">上一页</a> <a
+					class="btn btn-link" id="nextPage" onclick="nextPage();">下一页</a>
+				当前第 <label id="lblRequet"> <select id="pageselect"
+					class="select select-default">
+						<option value="1" selected="selected">1</option>
+						<option value="2">2</option>
+						<option value="3">3</option>
+				</select></label> 页
+				<button class="btn btn-default" onclick="findAllBookInfos()">GO</button>
+			</div>
+		</div>
+	</div>
+</body>
+</html>
